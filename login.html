@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login / Register</title>
+    <style>
+        body, html {
+            height: 100%;
+            margin: 0;
+            font-family: Arial, sans-serif;
+            background: #f0f4f8;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        .login-container {
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            width: 350px;
+            box-sizing: border-box;
+        }
+        h2 {
+            margin-top: 0;
+            text-align: center;
+            color: #0057b7;
+        }
+        label {
+            display: block;
+            margin-top: 15px;
+            font-weight: bold;
+            color: #333;
+        }
+        input[type="text"], input[type="password"], input[type="email"] {
+            width: 100%;
+            padding: 10px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            box-sizing: border-box;
+            font-size: 1em;
+        }
+        input[type="submit"] {
+            margin-top: 20px;
+            width: 100%;
+            padding: 12px;
+            background-color: #0057b7;
+            border: none;
+            color: white;
+            font-size: 1.1em;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+        input[type="submit"]:hover {
+            background-color: #004494;
+        }
+        .error {
+            color: red;
+            font-size: 0.9em;
+            margin-top: 5px;
+        }
+        .success {
+            color: green;
+            font-size: 1em;
+            margin-top: 10px;
+            text-align: center;
+        }
+        .hidden {
+            display: none;
+        }
+        .verification-section {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .verification-section input[type="text"] {
+            width: 60%;
+            display: inline-block;
+        }
+        .verification-section button {
+            width: 35%;
+            padding: 10px;
+            background-color: #28a745;
+            border: none;
+            color: white;
+            font-size: 1em;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 5px;
+        }
+        .verification-section button:hover {
+            background-color: #218838;
+        }
+    </style>
+</head>
+<body>
+    <div class="login-container">
+        <h2>Login / Register</h2>
+        <form id="loginForm">
+            <label for="email">Email:</label>
+            <input type="email" id="email" name="email" required placeholder="you@example.com">
+            <div id="emailError" class="error hidden">Please enter a valid email address.</div>
+
+            <label for="username">Username:</label>
+            <input type="text" id="username" name="username" required placeholder="No spaces allowed">
+            <div id="usernameError" class="error hidden">Username cannot contain spaces.</div>
+
+            <label for="password">Password:</label>
+            <input type="password" id="password" name="password" required placeholder="No spaces allowed">
+            <div id="passwordError" class="error hidden">Password cannot contain spaces.</div>
+
+            <input type="submit" value="Submit">
+        </form>
+
+        <<div id="verificationSection" class="verification-section hidden">
+    <p>A verification code has been sent to <strong id="emailDisplay"></strong></p>
+    <input type="text" id="verificationCode" placeholder="Enter 6-digit code">
+    <button id="verifyBtn">Verify</button>
+    <button id="resendBtn" style="background-color: #6c757d; margin-left: 10px;">Resend Code</button>
+    <div id="verificationError" class="error hidden">Incorrect verification code. Please try again.</div>
+    <div id="resendMessage" class="success hidden">New verification code sent!</div>
+    <div id="resendTimer" style="color: #666; font-size: 0.9em; margin-top: 10px;"></div>
+</div>
+
+
+        <div id="successMessage" class="success hidden">Your account has been verified and you are logged in!</div>
+    </div>
+
+    <script>
+        const loginForm = document.getElementById('loginForm');
+        const emailInput = document.getElementById('email');
+        const usernameInput = document.getElementById('username');
+        const passwordInput = document.getElementById('password');
+
+        const emailError = document.getElementById('emailError');
+        const usernameError = document.getElementById('usernameError');
+        const passwordError = document.getElementById('passwordError');
+
+        const verificationSection = document.getElementById('verificationSection');
+        const verificationCodeInput = document.getElementById('verificationCode');
+        const verifyBtn = document.getElementById('verifyBtn');
+        const resendBtn = document.getElementById('resendBtn');
+        const verificationError = document.getElementById('verificationError');
+        const successMessage = document.getElementById('successMessage');
+        const resendMessage = document.getElementById('resendMessage');
+        const resendTimer = document.getElementById('resendTimer');
+        const emailDisplay = document.getElementById('emailDisplay');
+
+        // Mock verification code and timer
+        let generatedCode = '';
+        let resendCooldown = 0;
+        let timerInterval;
+
+        function generateVerificationCode() {
+            generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
+            console.log('Verification code (mock):', generatedCode);
+            console.log('In a real app, this would be sent to:', localStorage.getItem('tempEmail'));
+        }
+
+        function startResendTimer() {
+            resendCooldown = 60; // 60 seconds cooldown
+            resendBtn.disabled = true;
+            resendBtn.style.backgroundColor = '#6c757d';
+            
+            timerInterval = setInterval(() => {
+                if (resendCooldown > 0) {
+                    resendTimer.textContent = `You can request a new code in ${resendCooldown} seconds`;
+                    resendCooldown--;
+                } else {
+                    resendTimer.textContent = '';
+                    resendBtn.disabled = false;
+                    resendBtn.style.backgroundColor = '#6c757d';
+                    clearInterval(timerInterval);
+                }
+            }, 1000);
+        }
+
+
+        function validateEmail(email) {
+            const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            return re.test(email);
+        }
+
+        function containsSpaces(str) {
+            return /\s/.test(str);
+        }
+
+        loginForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+
+            // Reset errors
+            emailError.classList.add('hidden');
+            usernameError.classList.add('hidden');
+            passwordError.classList.add('hidden');
+            verificationError.classList.add('hidden');
+            successMessage.classList.add('hidden');
+
+            let valid = true;
+
+            if (!validateEmail(emailInput.value)) {
+                emailError.classList.remove('hidden');
+                valid = false;
+            }
+            if (containsSpaces(usernameInput.value)) {
+                usernameError.classList.remove('hidden');
+                valid = false;
+            }
+            if (containsSpaces(passwordInput.value)) {
+                passwordError.classList.remove('hidden');
+                valid = false;
+            }
+
+            if (!valid) return;
+
+            // Check if user exists (for login)
+            const users = JSON.parse(localStorage.getItem('users') || '{}');
+            if (users[usernameInput.value]) {
+                // Existing user - login
+                if (users[usernameInput.value].password === passwordInput.value && 
+                    users[usernameInput.value].email === emailInput.value) {
+                    localStorage.setItem('loggedInUser', usernameInput.value);
+                    successMessage.textContent = 'Login successful!';
+                    successMessage.classList.remove('hidden');
+                    setTimeout(() => {
+                        window.location.href = 'index.html';
+                    }, 1500);
+                } else {
+                    passwordError.textContent = 'Incorrect password or email.';
+                    passwordError.classList.remove('hidden');
+                }
+                return;
+            }
+
+            // New user - registration with verification
+            localStorage.setItem('tempEmail', emailInput.value);
+            localStorage.setItem('tempUsername', usernameInput.value);
+            localStorage.setItem('tempPassword', passwordInput.value);
+
+            // Generate and send verification code
+            generateVerificationCode();
+
+            // Show email in verification section
+            emailDisplay.textContent = emailInput.value;
+
+            // Hide form and show verification
+            loginForm.classList.add('hidden');
+            verificationSection.classList.remove('hidden');
+
+            // Start resend timer
+            startResendTimer();
+
+        });
+
+        verifyBtn.addEventListener('click', function() {
+            verificationError.classList.add('hidden');
+            successMessage.classList.add('hidden');
+
+            if (verificationCodeInput.value === generatedCode) {
+                // Save user permanently
+                const users = JSON.parse(localStorage.getItem('users') || '{}');
+                const username = localStorage.getItem('tempUsername');
+                const password = localStorage.getItem('tempPassword');
+                const email = localStorage.getItem('tempEmail');
+
+                users[username] = { password: password, email: email };
+                localStorage.setItem('users', JSON.stringify(users));
+
+                // Set logged in user
+                localStorage.setItem('loggedInUser', username);
+
+                // Clear temp data
+                localStorage.removeItem('tempEmail');
+                localStorage.removeItem('tempUsername');
+                localStorage.removeItem('tempPassword');
+
+                verificationSection.classList.add('hidden');
+                successMessage.classList.remove('hidden');
+
+                setTimeout(() => {
+                    window.location.href = 'index.html';
+                }, 2000);
+            } else {
+                verificationError.classList.remove('hidden');
+            }
+        });
+    </script>
+</body>
+</html>
